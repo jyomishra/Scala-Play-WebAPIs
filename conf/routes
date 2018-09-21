@@ -1,0 +1,12 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# An example controller showing how to use dependency injection
+
+GET     /bitCoin/history/           controllers.HomeController.getBitCoinData
+
+GET     /bitCoin/prediction/        controllers.HomeController.getBitCoinPredicationData
+
+GET     /bitCoin/rollingAvg/        controllers.HomeController.getBitCoinRollingAverage
+
