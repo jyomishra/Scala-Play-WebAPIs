@@ -1,6 +1,6 @@
 package services
 
-import actor.BuildDataModel
+import actor.{BitCoinAverageCalculator, BuildDataModel}
 import akka.actor.ActorRef
 import akka.stream.Materializer
 import org.joda.time.format.ISODateTimeFormat
@@ -15,7 +15,7 @@ import scala.concurrent.{Await, ExecutionContext}
 
 class BitCoinService(bitCoinActor: ActorRef)(implicit ec: ExecutionContext, materializer: Materializer) {
 
-  private val bitCoinData = getBitCoinData()
+  private var bitCoinData = getBitCoinData()
   private var dataModel : Option[NaiveBayes] = None
   private var bitCoinAvgIncrease : Option[Double] = None
   private var lastDatePrice : Option[Double] = None
@@ -24,16 +24,18 @@ class BitCoinService(bitCoinActor: ActorRef)(implicit ec: ExecutionContext, mate
     val bitCoinDataFuture = AhcWSClient()(materializer).url("https://www.coinbase.com/api/v2/prices/BTC-USD/historic?period=year").get().map { response =>
       response.body[JsValue]
     }
-    val bitCoinData = Await.result(bitCoinDataFuture, 5.seconds)
-    val bitCoinCurrency = bitCoinData \ "data" \ "currency"
-    val bitCoinPrices = bitCoinData \ "data" \ "prices"
+    val bitCoinList = Await.result(bitCoinDataFuture, 5.seconds)
+    val bitCoinCurrency = bitCoinList \ "data" \ "currency"
+    val bitCoinPrices = bitCoinList \ "data" \ "prices"
 
     if(bitCoinCurrency.isEmpty || bitCoinPrices.isEmpty) {
       println("Error in reading data. Please have a look.")
     } else {
-      bitCoinActor ! BuildDataModel()
+      bitCoinActor ! BitCoinAverageCalculator()
     }
-    (bitCoinCurrency, bitCoinPrices)
+    bitCoinData = (bitCoinCurrency, bitCoinPrices)
+
+    bitCoinData
   }
 
   def getBitCoinDataByTime(time: DateTime) = {
